@@ -65,7 +65,7 @@ sys_hook_add64(struct sys_hook *hook, unsigned int syscall_id, void *func)
     ent->hooked = (uintptr_t)func;
     ent->type = SHT_X64;
 
-    printk("orig %lx, id %d, hook %lx\n", ent->original, syscall_id, func);
+    //printk("orig %lx, id %d, hook %lx\n", ent->original, syscall_id, func);
     /* Overwrite the entry in the syscall table */
     set_cr0(get_cr0() & ~CR0_WRITE_PROTECT);
     hook->x64_sct[syscall_id] = (unsigned long long)ent->hooked;
