@@ -7,7 +7,7 @@
 #include "hooks.h"
 
 struct sys_hook *fpc_sys_hook;
-
+struct inode *fpc_inode = NULL;
 /* Module parameter macros */
 static char *fpc_pathname = "";
 module_param(fpc_pathname, charp, 0);
@@ -38,16 +38,27 @@ module_entry(void)
 {
     unsigned long syscall_close_addr = 0;
     unsigned long syscall_table_addr = 0;
+    struct file* fpc_file;
 
     printk(KERN_INFO "fpc initializing...\n");
 
-    syscall_close_addr = kallsyms_lookup_name("sys_close");
+    printk("pathname to be protected is %s\n", fpc_pathname);
+    if (0 == strlen(fpc_pathname))
+        return -EINVAL;
+    fpc_file = filp_open(fpc_pathname, O_RDONLY, 0);
+    if (IS_ERR(fpc_file))
+        return -EINVAL;
+    printk(KERN_INFO "file at %lx\n", fpc_file);
+    fpc_inode = fpc_file->f_path.dentry->d_inode;
+    printk(KERN_INFO "inode at %lx\n", fpc_inode);
+    filp_close(fpc_file, NULL);
 
+
+    syscall_close_addr = kallsyms_lookup_name("sys_close");
     if (0 == syscall_close_addr) {
         printk(KERN_INFO "failed to get syscall close addr\n");
         return -1;
     }
-
     //printk(KERN_INFO"sys_close at %lx\n", syscall_close_addr);
 
     //syscall_table_addr = get_sys_call_table(__NR_close, syscall_close_addr);
