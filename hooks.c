@@ -4,32 +4,49 @@
 
 extern struct sys_hook *lkh_sys_hook;
 
-asmlinkage int mkdir_hook(const char *path, int mode)
+asmlinkage long mkdir_hook(const char __user *path, int mode)
 {
     sys_mkdir_t sys_mkdir;
-    
+ 
     sys_mkdir = (sys_mkdir_t)sys_hook_get_orig64(lkh_sys_hook, __NR_mkdir);
-    printk(KERN_INFO "we enter the mkdir hook\n");
+    printk(KERN_INFO "we enter the mkdir hook, real call at %lx\n",
+                (unsigned long)sys_mkdir);
+
+    return sys_mkdir(path, mode);
+
     return -EPERM;
-    //return sys_mkdir(path, mode);
+    if (!strncmp(path, "/tmp/mytest", 11))
+        return -EPERM;
+    else
+        return sys_mkdir(path, mode);
 }
 
-asmlinkage int unlink_hook(const char *path)
+asmlinkage long unlink_hook(const char __user *path)
 {
     sys_unlink_t sys_unlink;
     
     sys_unlink = (sys_unlink_t)sys_hook_get_orig64(lkh_sys_hook, __NR_unlink);
-    printk(KERN_INFO "we enter the unlink hook\n");
+    printk(KERN_INFO "we enter the unlink hook, path is %s, real call at %lx\n",
+                path, (unsigned long)sys_unlink);
+    return sys_unlink(path);
     return -EINVAL;
-    //return sys_unlink(path);
+    if (!strncmp(path, "/tmp/mytest", 11))
+        return -EINVAL;
+    else
+        return sys_unlink(path);
 }
 
-asmlinkage int unlinkat_hook(int dfd, const char *path, int flags)
+asmlinkage long unlinkat_hook(int dfd, const char __user *path, int flags)
 {
-    sys_unlink_t sys_unlinkat;
+    sys_unlinkat_t sys_unlinkat;
     
-    sys_unlinkat = (sys_unlink_t)sys_hook_get_orig64(lkh_sys_hook, __NR_unlinkat);
-    printk(KERN_INFO "we enter the unlinkat hook\n");
+    sys_unlinkat = (sys_unlinkat_t)sys_hook_get_orig64(lkh_sys_hook, __NR_unlinkat);
+    printk(KERN_INFO "we enter the unlinkat hook, path is %sreal call at %lx\n",
+                path, (unsigned long)sys_unlinkat); 
+    return sys_unlinkat(dfd, path, flags);
     return -EINVAL;
-    //return sys_unlink(dfd, path, flags);
+    if (!strncmp(path, "/tmp/mytest", 11))
+        return -EINVAL;
+    else
+        return sys_unlinkat(dfd, path, flags);
 }

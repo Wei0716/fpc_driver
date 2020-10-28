@@ -18,9 +18,11 @@ MODULE_PARM_DESC(kbase64, "Base address of the x64 syscall table, in hex");
 unsigned long *
 get_sys_call_table(unsigned int syscall_nr, unsigned long syscall_addr)
 {
-    unsigned long *entry = (unsigned long *)0xffffffff81000000;
+    unsigned long *base = (unsigned long *)(syscall_addr - 64*0x100000);
+    unsigned long *end = (unsigned long *)(syscall_addr + 64*0x100000);
+    unsigned long *entry;
 
-    for (;(unsigned long)entry < 0xffffffff81000000 + 32*0x100000; entry += 1) {
+    for (entry = base;entry < end ; entry += 1) {
 
         if (entry[syscall_nr] == syscall_addr) {
         printk("entry at %lx, %pK, syscall addr %lx, mem addr %lx\n",
@@ -35,13 +37,12 @@ get_sys_call_table(unsigned int syscall_nr, unsigned long syscall_addr)
 static int __init
 module_entry(void)
 {
-    unsigned long syscall_close_addr;
-    unsigned long *syscall_table_addr = NULL;
-    unsigned long *real_table = (unsigned long *)0xffffffff820001c0;
+    unsigned long syscall_close_addr = 0;
+    unsigned long syscall_table_addr = 0;
 
     printk(KERN_INFO "lkh initializing...\n");
 
-    syscall_close_addr = kallsyms_lookup_name("__x64_sys_close");
+    syscall_close_addr = kallsyms_lookup_name("sys_close");
 
     if (0 == syscall_close_addr) {
         printk(KERN_INFO "failed to get syscall close addr\n");
@@ -50,15 +51,10 @@ module_entry(void)
 
     printk("sys_close at %lx\n", syscall_close_addr);
 
-    printk("kernel begin %lx, close at table is %lx, %lx, %lx, %lx\n",
-            PAGE_OFFSET, 
-            real_table[0], 
-            real_table[1], 
-            real_table[2], 
-            real_table[3]);
-    syscall_table_addr = get_sys_call_table(__NR_close, syscall_close_addr);
+    //syscall_table_addr = get_sys_call_table(__NR_close, syscall_close_addr);
+    syscall_table_addr = kallsyms_lookup_name("sys_call_table");
 
-    if (NULL == syscall_table_addr) {
+    if (0 == syscall_table_addr) {
         printk(KERN_INFO "failed to get x86 syscall table\n");
         return -1;
     }
